@@ -1,8 +1,8 @@
 import bs4
 import requests
-# import transmissionrpc
+import transmissionrpc
 
-# tc = transmissionrpc.Client('localhost', port=9091, user="transmission", password="secret")
+tc = transmissionrpc.Client('localhost', port=9091, user="transmission", password="secret")
 
 url = ""
 
@@ -24,4 +24,4 @@ def dlSerie(name, season, episode):
     img = tSoup.find('img', {'src':u'//images4et.com/images/magnet.gif'})
     torrent = img.parent['href']
     print(torrent)
-    # tc.add_torrent("https://extratorrent.cc" + torrent)
+    tc.add_torrent("https://extratorrent.cc" + torrent)

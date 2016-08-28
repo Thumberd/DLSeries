@@ -78,3 +78,11 @@ class Serie:
                            (nSeason, nEpisode, self.serie[0]))
             self.conn.commit()
             return True
+
+    def get_episode(self, season, nEpisode):
+        payload = {'api_key': self.themovieDBKey}
+        rEpisodes = requests.get("http://api.themoviedb.org/3/tv/{}/season/{}".format(self.serie[2], season), payload)
+        episodes = rEpisodes.json()['episodes']
+        for episode in episodes:
+            if episode['episode_number'] == nEpisode:
+                return episode

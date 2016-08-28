@@ -6,6 +6,7 @@ import shutil
 import os
 import hashlib
 import requests
+import re
 
 app = Celery('worker', broker='amqp://guest@localhost//')
 
@@ -36,21 +37,56 @@ def sub(hash, path):
                 f.write(chunk)
 
 
+def send_sms(text):
+    r = requests.get("https://smsapi.free-mobile.fr/sendmsg?user=10908880&pass=9o83gNpCCAMjjs&msg={}".format(text))
+
+
+def get_show(name):
+    name = name.replace('.', ' ')
+    list = ["NCIS Los Angeles", 'NCIS', "The 100", "Quantico", "Blacklist", ]
+    for show in list:
+        if show in name:
+            return show
+
+
+def get_episode(name, season, nEpisode):
+    payload = {'api_key':  "ecab8308ea39b8e4f2d3e707d204f8b3", 'query': name}  # Finding infos about the show on the API
+    findID = requests.get("http://api.themoviedb.org/3/search/tv", payload)
+    idS = int(findID.json()['results'][0]['id'])
+    payload = {'api_key':  "ecab8308ea39b8e4f2d3e707d204f8b3"}
+    rEpisodes = requests.get("http://api.themoviedb.org/3/tv/{}/season/{}".format(idS, season), payload)
+    episodes = rEpisodes.json()['episodes']
+    for episode in episodes:
+        if episode['episode_number'] == nEpisode:
+            return episode
+
+
 @periodic_task(run_every=crontab(minute='*'))
 def checkForDownloadedFiles():
-    print('Do It Right')
     tc = transmissionrpc.Client('localhost', port=9091, user="transmission", password="secret")
     torrents = tc.get_torrents()
     for torrent in torrents:
-        if torrent.status != "downloading" and torrent.status != "stopped" or 1 == 1:
+        if torrent.status != "downloading" and torrent.status != "stopped":
             files = torrent.files()
             i = 0
             for i in range(0, len(files)):
-                if files[i]['name'].split('.')[-1] != 'txt':
-                    os.system('sudo mv /var/lib/transmission-daemon/downloads/' + files[i]['name'] + ' /media/USBHDD1/NASRPI/Series/' + files[i]['name'].split('/')[1])
-                    path = '/media/USBHDD1/NASRPI/Series/' + files[i]['name'].split('/')[1]
-                    print(path)
+                file_name = files[i]['name']
+                if file_name.split('.')[-1] != 'txt':
+                    matchSeason = re.search(r'S([0-9])+', file_name)
+                    if matchSeason:
+                        season = file_name[matchSeason.start():matchSeason.end()]
+                    matchEpisode = re.search(r'E([0-9])+', file_name)
+                    if matchEpisode:
+                        episode = file_name[matchSeason.start():matchSeason.end()]
+                    show = get_show(file_name)
+                    episodeInfo = get_episode(show, season, episode)
+                    name = "{show} - {season}x{episode} - {name}.{extension}".format(show=show, season=season, episode=episode, name=episodeInfo['name'],
+                                                                                     extension=file_name.split('.')[-1])
+                    srt_name = "{show} - {season}x{episode} - {name}.{extension}".format(show=show, season=season, episode=episode, name=episodeInfo['name'],
+                                                                                     extension='srt')
+                    os.system('sudo mv /var/lib/transmission-daemon/downloads/' + file_name + ' /media/USBHDD1/NASRPI/Series/' + name)
+                    path = '/media/USBHDD1/NASRPI/Series/' + name
                     hash = get_hash(path)
-                    print(hash)
                     sub(hash, path + '.srt')
+                    os.system('sudo mv ' + path + '.srt ' + srt_name)
             torrent.stop()

@@ -29,4 +29,4 @@ def dlSerie(name, season, episode):
     torrent = img.parent['href']
     print(torrent)
     tc = transmissionrpc.Client('localhost', port=9091, user="transmission", password="secret")
-    tc.add_torrent("https://extratorrent.cc" + torrent)
+    tc.add_torrent(torrent)

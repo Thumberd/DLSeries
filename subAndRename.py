@@ -3,7 +3,7 @@ import re
 import os
 import sys
 
-key = "**"
+key = "*"
 base_format_file = "{show} - {season}x{episode} - {name}.{extension}"
 
 
@@ -33,9 +33,11 @@ def get_episode(name, season, n_episode):
 
 def get_show(name):
     name = name.replace('.', ' ')
-    list = ["NCIS Los Angeles", "ncis los angeles", 'NCIS', "The 100", "Quantico", "Blacklist", "Mr  Robot", "Mr Robot"]
+    name = name.replace(':', ' ')
+    name = name.replace(' ', '')
+    list = ["NCIS Los Angeles", 'NCIS', "The 100", "Quantico", "Blacklist", "Mr Robot",]
     for show in list:
-        if show in name:
+        if show.replace(' ', '') in name or show.replace(' ', '').lower() in name.lower():
             return show
     return None
 
@@ -49,17 +51,26 @@ def rename_files(previous_video_file, future_video_file, base_path=os.getcwd()):
         return None
 
 
-def fetch_episode(file_name, dest_path=None):
-    print(file_name)
+def extract_info(file_name):
     match_season = re.search(r'S([0-9])+', file_name)
     match_episode = re.search(r'E([0-9])+', file_name)
     if match_season:
-        season = file_name[match_season.start()+1:match_season.end()]
-        episode = file_name[match_episode.start()+1:match_episode.end()]
-    else:
-        match = re.search(r'([0-9])+x([0-9])+', file_name)
-        season = file_name[match.start():match.start()+2]
+        season = file_name[match_season.start() + 1:match_season.end()]
+        episode = file_name[match_episode.start() + 1:match_episode.end()]
+        return season, episode
+    match = re.search(r'([0-9])+x([0-9])+', file_name)
+    if match:
+        season = file_name[match.start():match.start() + 2]
         episode = file_name[match.start() + 3:match.end()]
+        return season, episode
+    match = re.search(r'([0-9]){3}', file_name)
+    if match:
+        season = file_name[match.start():match.start() + 1]
+        episode = file_name[match.start() + 1:match.end()]
+        return season, episode
+
+def fetch_episode(file_name, dest_path=None):
+    season, episode = extract_info(file_name)
     if season != "" and episode != "":
         show = get_show(file_name)
         episodeInfo= get_episode(show, season, episode)

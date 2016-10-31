@@ -9,6 +9,7 @@ base_format_file = "{show} - {season}x{episode} - {name}.{extension}"
 
 def sub(idE, path):
     rSearch = requests.get("https://api.betaseries.com/subtitles/episode?key={}&id={}".format(key, idE))
+    print(rSearch.text)
     link = rSearch.json()['subtitles'][0]['url']
     rSub = requests.get(link)
     if rSub.status_code == 200:
@@ -32,7 +33,7 @@ def get_episode(name, season, n_episode):
 
 def get_show(name):
     name = name.replace('.', ' ')
-    list = ["NCIS Los Angeles", 'NCIS', "The 100", "Quantico", "Blacklist", "Mr  Robot", "Mr Robot"]
+    list = ["NCIS Los Angeles", "ncis los angeles", 'NCIS', "The 100", "Quantico", "Blacklist", "Mr  Robot", "Mr Robot"]
     for show in list:
         if show in name:
             return show
@@ -48,15 +49,16 @@ def rename_files(previous_video_file, future_video_file, base_path=os.getcwd()):
         return None
 
 
-def fetch_episode(file_name, dest_path = None):
+def fetch_episode(file_name, dest_path=None):
+    print(file_name)
     match_season = re.search(r'S([0-9])+', file_name)
     match_episode = re.search(r'E([0-9])+', file_name)
-    if match_season and match_episode:
+    if match_season:
         season = file_name[match_season.start()+1:match_season.end()]
         episode = file_name[match_episode.start()+1:match_episode.end()]
     else:
         match = re.search(r'([0-9])+x([0-9])+', file_name)
-        season = file_name[match.start() :match.start()+2]
+        season = file_name[match.start():match.start()+2]
         episode = file_name[match.start() + 3:match.end()]
     if season != "" and episode != "":
         show = get_show(file_name)
